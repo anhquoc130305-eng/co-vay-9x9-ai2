@@ -6,14 +6,14 @@ class MinimaxAI:
     def __init__(self, game, ai_player=WHITE, depth=1):
         self.game = game
         self.ai_player = ai_player
-        self.human_player = BLACK if ai_player == WHITE else WHITE
+        self.opponent = BLACK if ai_player == WHITE else WHITE
         self.depth = depth
 
     def minimax(self, board, depth, alpha, beta, maximizing):
         if depth == 0 or self.game.is_game_over(board):
             return self.game.evaluate_board_for_player(board, self.ai_player), None
 
-        player = self.ai_player if maximizing else self.human_player
+        player = self.ai_player if maximizing else self.opponent
         valid_moves = self.game.get_valid_moves(board, player)
 
         if not valid_moves:
