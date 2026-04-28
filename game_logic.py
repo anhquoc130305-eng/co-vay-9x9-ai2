@@ -148,7 +148,13 @@ class GoGame:
                         human_score += score
 
         return ai_score - human_score
+    def evaluate_board_for_player(self, board, player):
+    score = self.evaluate_board(board)
 
+    if player == WHITE:
+        return score
+    else:
+        return -score
     def calculate_score(self, board):
         black_score = 0
         white_score = 0
