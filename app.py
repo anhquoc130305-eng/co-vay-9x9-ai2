@@ -19,17 +19,32 @@ BOARD_PIXELS = MARGIN * 2 + CELL * (BOARD_SIZE - 1)
 
 def init_game():
     st.session_state.game = GoGame()
-    st.session_state.ai = MinimaxAI(st.session_state.game, depth=1)
-    st.session_state.white_ai = MinimaxAI(st.session_state.game, depth=1)
+
+    st.session_state.white_ai = MinimaxAI(
+        st.session_state.game,
+        ai_player=WHITE,
+        depth=1
+    )
+
+    st.session_state.black_ai = MinimaxAI(
+        st.session_state.game,
+        ai_player=BLACK,
+        depth=1
+    )
+
     st.session_state.board = st.session_state.game.board
     st.session_state.game_over = False
     st.session_state.message = "Bạn là X. AI là O. Bạn đi trước."
+    st.session_state.current_turn = BLACK
     st.session_state.last_click_time = None
     st.session_state.board_key = st.session_state.get("board_key", 0) + 1
 
 
 if "game" not in st.session_state:
     init_game()
+
+if "mode" not in st.session_state:
+    st.session_state.mode = "Người chơi vs AI"
 
 
 def draw_board(board):
@@ -116,21 +131,6 @@ def get_click_position(value):
     return None
 
 
-def run_ai_move():
-    game = st.session_state.game
-    ai = st.session_state.ai
-
-    move = ai.get_best_move(st.session_state.board)
-
-    if move is None:
-        st.session_state.message = "AI không còn nước đi."
-        return
-
-    x, y = move
-    st.session_state.board = game.make_move(st.session_state.board, x, y, WHITE)
-    st.session_state.message = f"AI vừa đánh tại dòng {x}, cột {y}. Đến lượt bạn."
-
-
 def check_game_over():
     game = st.session_state.game
 
@@ -139,15 +139,40 @@ def check_game_over():
         winner, black_score, white_score = game.get_winner(st.session_state.board)
 
         if winner == BLACK:
-            st.session_state.message = f"Bạn thắng! Điểm bạn: {black_score} - Điểm AI: {white_score}"
+            st.session_state.message = f"Đen thắng! Điểm Đen: {black_score} - Điểm Trắng: {white_score}"
         elif winner == WHITE:
-            st.session_state.message = f"AI thắng! Điểm bạn: {black_score} - Điểm AI: {white_score}"
+            st.session_state.message = f"Trắng thắng! Điểm Đen: {black_score} - Điểm Trắng: {white_score}"
         else:
-            st.session_state.message = f"Hòa! Điểm bạn: {black_score} - Điểm AI: {white_score}"
+            st.session_state.message = f"Hòa! Điểm Đen: {black_score} - Điểm Trắng: {white_score}"
 
         return True
 
     return False
+
+
+def ai_move(player):
+    game = st.session_state.game
+
+    if player == BLACK:
+        ai = st.session_state.black_ai
+    else:
+        ai = st.session_state.white_ai
+
+    move = ai.get_best_move(st.session_state.board)
+
+    if move is None:
+        st.session_state.message = "AI không còn nước đi."
+        return
+
+    x, y = move
+    st.session_state.board = game.make_move(st.session_state.board, x, y, player)
+
+    color_name = "Đen" if player == BLACK else "Trắng"
+    st.session_state.message = f"AI {color_name} vừa đánh tại dòng {x}, cột {y}."
+
+    st.session_state.current_turn = WHITE if player == BLACK else BLACK
+
+    check_game_over()
 
 
 def player_move(x, y):
@@ -161,12 +186,12 @@ def player_move(x, y):
         return
 
     st.session_state.board = game.make_move(st.session_state.board, x, y, BLACK)
+    st.session_state.message = f"Bạn vừa đánh tại dòng {x}, cột {y}."
 
     if check_game_over():
         return
 
-    run_ai_move()
-    check_game_over()
+    ai_move(WHITE)
 
 
 st.markdown(
@@ -240,15 +265,26 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+mode = st.radio(
+    "Chọn chế độ chơi",
+    ["Người chơi vs AI", "AI vs AI"],
+    horizontal=True
+)
+
+if mode != st.session_state.mode:
+    st.session_state.mode = mode
+    init_game()
+    st.rerun()
+
 black_score, white_score = st.session_state.game.calculate_score(st.session_state.board)
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric("Điểm người chơi", black_score)
+    st.metric("Điểm Đen", black_score)
 
 with col2:
-    st.metric("Điểm AI", white_score)
+    st.metric("Điểm Trắng", white_score)
 
 with col3:
     st.metric("Kích thước", "9x9")
@@ -263,38 +299,31 @@ value = streamlit_image_coordinates(
     width=BOARD_PIXELS
 )
 
-if value is not None and not st.session_state.game_over:
-    click_time = str(value)
+if st.session_state.mode == "Người chơi vs AI":
+    if value is not None and not st.session_state.game_over:
+        click_time = str(value)
 
-    if st.session_state.last_click_time != click_time:
-        st.session_state.last_click_time = click_time
+        if st.session_state.last_click_time != click_time:
+            st.session_state.last_click_time = click_time
 
-        position = get_click_position(value)
+            position = get_click_position(value)
 
-        if position is not None:
-            x, y = position
-            player_move(x, y)
-            st.rerun()
+            if position is not None:
+                x, y = position
+                player_move(x, y)
+                st.rerun()
 
 st.divider()
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1:
-    if st.button(
-        "🔄 Chơi lại",
-        key="reset_game_btn",
-        use_container_width=True
-    ):
+    if st.button("🔄 Chơi lại", use_container_width=True):
         init_game()
         st.rerun()
 
 with col2:
-    if st.button(
-        "🏁 Kết thúc & tính điểm",
-        key="finish_game_btn",
-        use_container_width=True
-    ):
+    if st.button("🏁 Kết thúc & tính điểm", use_container_width=True):
         st.session_state.game_over = True
 
         winner, black_score, white_score = st.session_state.game.get_winner(
@@ -302,21 +331,30 @@ with col2:
         )
 
         if winner == BLACK:
-            st.session_state.message = (
-                f"Bạn thắng! Điểm bạn: {black_score} - Điểm AI: {white_score}"
-            )
+            st.session_state.message = f"Đen thắng! Điểm Đen: {black_score} - Điểm Trắng: {white_score}"
         elif winner == WHITE:
-            st.session_state.message = (
-                f"AI thắng! Điểm bạn: {black_score} - Điểm AI: {white_score}"
-            )
+            st.session_state.message = f"Trắng thắng! Điểm Đen: {black_score} - Điểm Trắng: {white_score}"
         else:
-            st.session_state.message = (
-                f"Hòa! Điểm bạn: {black_score} - Điểm AI: {white_score}"
-            )
+            st.session_state.message = f"Hòa! Điểm Đen: {black_score} - Điểm Trắng: {white_score}"
 
-        st.session_state.last_click_time = None
         st.rerun()
 
+with col3:
+    if st.session_state.mode == "AI vs AI":
+        if st.button("🤖 AI đánh 1 lượt", use_container_width=True):
+            if not st.session_state.game_over:
+                ai_move(st.session_state.current_turn)
+                st.rerun()
+
+if st.session_state.mode == "AI vs AI":
+    if st.button("⚡ AI tự đánh 10 lượt", use_container_width=True):
+        for _ in range(10):
+            if st.session_state.game_over:
+                break
+
+            ai_move(st.session_state.current_turn)
+
+        st.rerun()
 
 with st.expander("Giải thích thuật toán"):
     st.write(
@@ -331,5 +369,9 @@ with st.expander("Giải thích thuật toán"):
         - Số quân trong nhóm
         - Số khí còn lại của nhóm quân
         - Chênh lệch điểm giữa AI và người chơi
+
+        Chế độ **AI vs AI** dùng 2 AI:
+        - AI Đen
+        - AI Trắng
         """
     )
