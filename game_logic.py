@@ -2,8 +2,8 @@ import copy
 
 BOARD_SIZE = 9
 EMPTY = "."
-BLACK = "X"   # Người chơi
-WHITE = "O"   # AI
+BLACK = "X"
+WHITE = "O"
 
 
 class GoGame:
@@ -14,8 +14,8 @@ class GoGame:
         return 0 <= x < BOARD_SIZE and 0 <= y < BOARD_SIZE
 
     def neighbors(self, x, y):
-        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
         result = []
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
 
         for dx, dy in directions:
             nx = x + dx
@@ -116,7 +116,6 @@ class GoGame:
         ai_score = 0
         human_score = 0
         visited = set()
-
         center = BOARD_SIZE // 2
 
         for i in range(BOARD_SIZE):
@@ -131,9 +130,7 @@ class GoGame:
                         dist = abs(x - center) + abs(y - center)
                         center_bonus += max(0, 4 - dist)
 
-                    danger_penalty = 0
-                    if liberties <= 1:
-                        danger_penalty = -15
+                    danger_penalty = -15 if liberties <= 1 else 0
 
                     score = (
                         group_size * 12
@@ -148,13 +145,15 @@ class GoGame:
                         human_score += score
 
         return ai_score - human_score
-    def evaluate_board_for_player(self, board, player):
-    score = self.evaluate_board(board)
 
-    if player == WHITE:
-        return score
-    else:
-        return -score
+    def evaluate_board_for_player(self, board, player):
+        score = self.evaluate_board(board)
+
+        if player == WHITE:
+            return score
+        else:
+            return -score
+
     def calculate_score(self, board):
         black_score = 0
         white_score = 0
@@ -165,7 +164,6 @@ class GoGame:
                 if board[i][j] != EMPTY and (i, j) not in visited:
                     group = self.get_group(board, i, j, visited)
                     liberties = self.count_liberties(board, group)
-
                     score = len(group) + liberties
 
                     if board[i][j] == BLACK:
