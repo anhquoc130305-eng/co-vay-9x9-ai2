@@ -3,19 +3,21 @@ from game_logic import BLACK, WHITE
 
 
 class MinimaxAI:
-    def __init__(self, game, depth=1):
+    def __init__(self, game, ai_player=WHITE, depth=1):
         self.game = game
+        self.ai_player = ai_player
+        self.human_player = BLACK if ai_player == WHITE else WHITE
         self.depth = depth
 
     def minimax(self, board, depth, alpha, beta, maximizing):
         if depth == 0 or self.game.is_game_over(board):
-            return self.game.evaluate_board(board), None
+            return self.game.evaluate_board_for_player(board, self.ai_player), None
 
-        player = WHITE if maximizing else BLACK
+        player = self.ai_player if maximizing else self.human_player
         valid_moves = self.game.get_valid_moves(board, player)
 
         if not valid_moves:
-            return self.game.evaluate_board(board), None
+            return self.game.evaluate_board_for_player(board, self.ai_player), None
 
         best_move = None
 
@@ -24,7 +26,7 @@ class MinimaxAI:
 
             for move in valid_moves:
                 x, y = move
-                new_board = self.game.make_move(board, x, y, WHITE)
+                new_board = self.game.make_move(board, x, y, player)
 
                 eval_score, _ = self.minimax(
                     new_board,
@@ -50,7 +52,7 @@ class MinimaxAI:
 
             for move in valid_moves:
                 x, y = move
-                new_board = self.game.make_move(board, x, y, BLACK)
+                new_board = self.game.make_move(board, x, y, player)
 
                 eval_score, _ = self.minimax(
                     new_board,
